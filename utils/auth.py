@@ -8,13 +8,17 @@ from config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION
 
 def create_jwt_token(user_id, username):
     """Create a JWT token for the authenticated user"""
-    payload = {
-        "user_id": user_id,
-        "username": username,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=JWT_EXPIRATION)
-    }
-    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    return token
+    try:
+        payload = {
+            "user_id": user_id,
+            "username": username,
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=JWT_EXPIRATION)
+        }
+        token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+        return token
+    except Exception as e:
+        st.error(f"Error creating JWT token: {str(e)}")
+        return None
 
 
 def verify_jwt_token(token):
@@ -26,6 +30,9 @@ def verify_jwt_token(token):
         return None
     except jwt.InvalidTokenError:
         return None
+    except Exception as e:
+        st.error(f"Error verifying JWT token: {str(e)}")
+        return None
 
 
 def login(username, password):
@@ -36,11 +43,17 @@ def login(username, password):
         return False, "Invalid username or password"
     
     # Verify password
-    if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
-        return False, "Invalid username or password"
+    try:
+        if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+            return False, "Invalid username or password"
+    except Exception as e:
+        return False, f"Authentication error: {str(e)}"
     
     # Create JWT token
     token = create_jwt_token(user.id, user.username)
+    
+    if not token:
+        return False, "Failed to create authentication token"
     
     # Store in session state
     st.session_state["authenticated"] = True
@@ -96,6 +109,9 @@ def register_user(username, password, email):
     # Create JWT token and store in session
     token = create_jwt_token(user.id, user.username)
     
+    if not token:
+        return False, "User created but failed to generate authentication token"
+    
     st.session_state["authenticated"] = True
     st.session_state["user_id"] = user.id
     st.session_state["username"] = user.username
@@ -109,8 +125,11 @@ def change_password(user_id, current_password, new_password):
     user = get_user_by_username(st.session_state["username"])
     
     # Verify current password
-    if not bcrypt.checkpw(current_password.encode('utf-8'), user.password_hash.encode('utf-8')):
-        return False, "Current password is incorrect"
+    try:
+        if not bcrypt.checkpw(current_password.encode('utf-8'), user.password_hash.encode('utf-8')):
+            return False, "Current password is incorrect"
+    except Exception as e:
+        return False, f"Password verification error: {str(e)}"
     
     if len(new_password) < 8:
         return False, "New password must be at least 8 characters long"
