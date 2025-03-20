@@ -9,12 +9,13 @@ import datetime
 
 Base = declarative_base()
 
-# Create database engine and session
+# Create database engine and session with better error handling
 try:
+    # Connect to database using the URL from config
     engine = sa.create_engine(DATABASE_URL)
     SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
 except Exception as e:
-    print(f"Database connection error: {e}")
+    st.error(f"Database connection error: {e}")
     # We'll handle this during app initialization
 
 
@@ -45,7 +46,12 @@ class FacebookAccount(Base):
 
 # Database initialization function
 def init_db():
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+        return True
+    except Exception as e:
+        st.error(f"Failed to initialize database: {e}")
+        return False
 
 
 # Helper functions for database operations
