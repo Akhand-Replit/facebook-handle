@@ -1,0 +1,9 @@
+streamlit
+psycopg2-binary
+sqlalchemy
+facebook-sdk
+python-dotenv
+pyjwt
+bcrypt
+pandas
+plotly
