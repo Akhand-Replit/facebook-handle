@@ -3,12 +3,17 @@ import streamlit as st
 import pandas as pd
 import datetime
 from utils.db import get_user_accounts
+import re
 
 # Create a cache for Facebook API clients to avoid recreating them
 @st.cache_resource(ttl=3600)  # Cache for 1 hour
 def get_facebook_api(access_token):
     """Get a Facebook Graph API client with the given access token"""
-    return facebook.GraphAPI(access_token=access_token, version="v18.0")
+    try:
+        return facebook.GraphAPI(access_token=access_token, version="v18.0")
+    except Exception as e:
+        st.error(f"Error initializing Facebook API: {str(e)}")
+        return None
 
 
 def get_account_api(account_id, user_id):
@@ -66,10 +71,12 @@ def format_post_data(posts):
     df = pd.DataFrame(posts)
     
     # Convert created_time to datetime and format
-    df["created_time"] = pd.to_datetime(df["created_time"]).dt.strftime("%Y-%m-%d %H:%M")
+    if "created_time" in df.columns and not df.empty:
+        df["created_time"] = pd.to_datetime(df["created_time"]).dt.strftime("%Y-%m-%d %H:%M")
     
     # Add a shortened message column for display
-    df["short_message"] = df["message"].str[:50] + "..." 
+    if "message" in df.columns and not df.empty:
+        df["short_message"] = df["message"].str[:50] + "..."
     
     # Calculate engagement rate
     df["engagement"] = df["reactions"] + df["comments"] + df["shares"]
@@ -162,10 +169,12 @@ def format_comment_data(comments):
     df = pd.DataFrame(comments)
     
     # Convert created_time to datetime and format
-    df["created_time"] = pd.to_datetime(df["created_time"]).dt.strftime("%Y-%m-%d %H:%M")
+    if "created_time" in df.columns and not df.empty:
+        df["created_time"] = pd.to_datetime(df["created_time"]).dt.strftime("%Y-%m-%d %H:%M")
     
     # Add a shortened message column for display
-    df["short_message"] = df["message"].str[:50] + "..." 
+    if "message" in df.columns and not df.empty:
+        df["short_message"] = df["message"].apply(lambda x: str(x)[:50] + "..." if isinstance(x, str) and len(str(x)) > 50 else str(x))
     
     return df
 
