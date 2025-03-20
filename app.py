@@ -11,6 +11,17 @@ from pages.comments import show_comments_page
 from pages.settings import show_settings_page
 from config import PAGE_TITLE, PAGE_ICON, LAYOUT, INITIAL_SIDEBAR_STATE
 
+# Check if secrets are available, if not, try to load from local_config
+try:
+    # Test if we can access secrets
+    _ = st.secrets["postgres"]
+except (KeyError, FileNotFoundError):
+    try:
+        import local_config
+        st.warning("Using local_config.py for configuration. This is intended for development only.")
+    except ImportError:
+        st.error("Configuration not found. Create .streamlit/secrets.toml or local_config.py")
+
 # Set page configuration
 st.set_page_config(
     page_title=PAGE_TITLE,
